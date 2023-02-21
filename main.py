@@ -63,6 +63,7 @@ def download_chapter(browser, name):
         # Find all pages with BS4
         soup = BeautifulSoup(url, 'html.parser')
         chapterTitle = soup.find('h1').text
+        chapterTitle = chapterTitle.replace('/',' ').replace("?",'').replace(":",' -')
         print(chapterTitle)
         
         make_folder(f'{name}/{chapterTitle}')
