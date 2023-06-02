@@ -8,7 +8,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
 import requests
-import time
+import configparser
 
 # Set up the Chrome driver
 def make_browser(url):
@@ -18,6 +18,8 @@ def make_browser(url):
     options.add_argument('--profile-directory=Default')
     options.add_argument('--start-minimized')
     options.add_argument("--incognito")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36")
 
     # Create webdriver
     browser = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = options)
@@ -54,6 +56,11 @@ def make_folder(name):
 def download_chapter(browser, name):
     nextChapter = ActionChains(browser)
     oldURL = ''
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    user_agent = config['Settings']['user_agent']
+    referer = config['Settings']['referer']
     while True:
         url = browser.page_source
 
@@ -69,17 +76,26 @@ def download_chapter(browser, name):
         make_folder(f'{name}/{chapterTitle}')
         
         pageHTML = soup.find_all('picture')
+        header = {
+            "user-agent": user_agent,
+            "referer": referer
+        }
         i = 0
         for p in pageHTML:
             img = p.find('img')
+            #print(img, type(img))
             imgURL = img['data-src']
 
             # Download page
-            page = requests.get(imgURL)
+            page = requests.get(imgURL, headers=header)
+            imgTitle = f'{name}/{chapterTitle}/{chapterTitle} pg{i+1}.jpg'
+
+            #print(page)
             with open(f'{name}/{chapterTitle}/{chapterTitle} pg{i+1}.jpg', 'wb') as f:
                 f.write(page.content)
+
             i += 1
-        
+
         # Click next chapter right-arrow hotkey
         nextChapter.send_keys(Keys.ARROW_RIGHT).perform()
         oldURL = url
